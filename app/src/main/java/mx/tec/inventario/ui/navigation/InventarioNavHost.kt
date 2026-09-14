@@ -25,13 +25,13 @@ fun InventarioApp() {
     NavHost(navController = nav, startDestination = Route.LISTA) {
 
         composable(Route.LISTA) {
-            // Un ViewModel por pantalla, y todos salen de la misma Factory: ya
-            // no se construyen solos porque necesitan el repositorio.
             val viewModel: ListaViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val productos by viewModel.productos.collectAsStateWithLifecycle()
 
             ListaScreen(
                 productos = productos,
+                textoBusqueda = viewModel.textoBusqueda,
+                onTextoBusquedaChange = viewModel::onTextoBusquedaChange,
                 onProductoClick = { id -> nav.navigate(Route.detalle(id)) },
                 onNuevoClick = { nav.navigate(Route.NUEVO) }
             )

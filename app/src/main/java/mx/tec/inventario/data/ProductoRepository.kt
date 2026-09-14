@@ -19,6 +19,9 @@ class ProductoRepository(private val dao: ProductoDao) {
     fun observarPorId(id: Int): Flow<Producto?> =
         dao.observarPorId(id).map { fila -> fila?.toDomain() }
 
+    fun buscarPorNombre(texto: String): Flow<List<Producto>> =
+        dao.buscarPorNombre("%$texto%").map { filas -> filas.map { it.toDomain() } }
+
     suspend fun agregar(producto: Producto) = dao.insertar(producto.toEntity())
 
     suspend fun actualizar(producto: Producto) = dao.actualizar(producto.toEntity())

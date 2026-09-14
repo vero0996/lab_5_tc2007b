@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * La base de datos. Es abstracta: Room genera la implementación en tiempo de
@@ -13,7 +15,7 @@ import androidx.room.RoomDatabase
  * tabla. `exportSchema = false` porque en esta práctica no versionamos el
  * esquema en el repositorio.
  */
-@Database(entities = [ProductoEntity::class], version = 1, exportSchema = false)
+@Database(entities = [ProductoEntity::class], version = 2, exportSchema = false)
 abstract class InventarioDatabase : RoomDatabase() {
 
     abstract fun productoDao(): ProductoDao
@@ -25,17 +27,24 @@ abstract class InventarioDatabase : RoomDatabase() {
         @Volatile
         private var instancia: InventarioDatabase? = null
 
-        /**
-         * Abrir la base es caro. Se hace UNA vez en toda la vida del proceso, y
-         * a partir de ahí se reparte la misma instancia.
-         */
+        // 2. Defines el objeto Migration de la versión 1 a la 2
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE productos ADD COLUMN categoria TEXT NOT NULL DEFAULT 'General'"
+                )
+            }
+        }
+
         fun obtener(context: Context): InventarioDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     InventarioDatabase::class.java,
                     "inventario.db"
-                ).build().also { instancia = it }
+                )
+                    .addMigrations(MIGRATION_1_2) // 3. Le agregas la migración aquí
+                    .build().also { instancia = it }
             }
     }
 }

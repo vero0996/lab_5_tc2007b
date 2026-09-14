@@ -1,32 +1,43 @@
 package mx.tec.inventario.ui.state
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import mx.tec.inventario.data.ProductoRepository
 import mx.tec.inventario.domain.Producto
 
-/**
- * La lista del inventario.
- *
- * Ya no hay ningún `recargar()` que llamar: el `Flow` del repositorio
- * empuja una lista nueva cada vez que la tabla cambia. El ViewModel solo lo
- * convierte en algo que Compose sabe leer.
- *
- * `null` NO es lo mismo que lista vacía: null es "la primera consulta todavía
- * no vuelve", vacía es "no hay productos". El usuario lee cosas distintas.
- */
-class ListaViewModel(repository: ProductoRepository) : ViewModel() {
+class ListaViewModel(
+    private val repository: ProductoRepository
+) : ViewModel() {
 
-    val productos: StateFlow<List<Producto>?> =
-        repository.observarTodos().stateIn(
+    var textoBusqueda by mutableStateOf("")
+        private set
+
+    fun onTextoBusquedaChange(nuevoTexto: String) {
+        textoBusqueda = nuevoTexto
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val productos: StateFlow<List<Producto>> = snapshotFlow { textoBusqueda }
+        .flatMapLatest { texto ->
+            if (texto.isBlank()) {
+                repository.observarTodos()
+            } else {
+                repository.buscarPorNombre(texto)
+            }
+        }
+        .stateIn(
             scope = viewModelScope,
-            // Deja de escuchar 5 s después de que la pantalla se va, para no
-            // reabrir la consulta en cada rotación.
             started = SharingStarted.WhileSubscribed(ESPERA_MS),
-            initialValue = null
+            initialValue = emptyList()
         )
 
     private companion object {

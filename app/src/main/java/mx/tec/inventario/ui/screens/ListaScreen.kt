@@ -1,68 +1,58 @@
 package mx.tec.inventario.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mx.tec.inventario.domain.Producto
-import mx.tec.inventario.ui.components.CargandoView
 import mx.tec.inventario.ui.components.ProductoCard
-import mx.tec.inventario.ui.components.VacioView
 import mx.tec.inventario.ui.theme.InventarioTheme
 
-/**
- * La pantalla es tonta: recibe una lista y la pinta. No sabe que existe Room,
- * ni el ViewModel, ni de dónde salieron los datos — por eso su @Preview
- * funciona sin base de datos.
- *
- * `productos == null` significa "la consulta todavía no vuelve"; una lista
- * vacía significa "no hay nada". Son dos pantallas distintas.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaScreen(
-    productos: List<Producto>?,
+    productos: List<Producto>,
+    textoBusqueda: String,
+    onTextoBusquedaChange: (String) -> Unit,
     onProductoClick: (Int) -> Unit,
-    onNuevoClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onNuevoClick: () -> Unit
 ) {
     Scaffold(
-        modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Inventario") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNuevoClick) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar producto")
             }
         }
     ) { padding ->
-        when {
-            productos == null -> CargandoView(Modifier.padding(padding))
-
-            productos.isEmpty() -> VacioView(
-                mensaje = "Tu inventario está vacío.\nToca + para agregar el primer producto.",
-                modifier = Modifier.padding(padding)
+        Column(modifier = Modifier.padding(padding)) { // 👈 Faltaba esta llave '{'
+            OutlinedTextField(
+                value = textoBusqueda,
+                onValueChange = onTextoBusquedaChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                placeholder = { Text("Buscar por nombre...") },
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
             )
 
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(productos, key = { it.id }) { producto ->
+            LazyColumn {
+                items(productos) { producto ->
+                    // 👈 Se usa ProductoCard en lugar de ProductoItem
                     ProductoCard(
                         producto = producto,
                         onClick = { onProductoClick(producto.id) }
@@ -82,7 +72,13 @@ private fun ListaPreview() {
         Producto(3, "Chocolate de mesa", 64.0, 0)
     )
     InventarioTheme {
-        ListaScreen(productos = demo, onProductoClick = {}, onNuevoClick = {})
+        ListaScreen(
+            productos = demo,
+            textoBusqueda = "",
+            onTextoBusquedaChange = {},
+            onProductoClick = {},
+            onNuevoClick = {}
+        )
     }
 }
 
@@ -90,6 +86,12 @@ private fun ListaPreview() {
 @Composable
 private fun ListaVaciaPreview() {
     InventarioTheme {
-        ListaScreen(productos = emptyList(), onProductoClick = {}, onNuevoClick = {})
+        ListaScreen(
+            productos = emptyList(),
+            textoBusqueda = "",
+            onTextoBusquedaChange = {},
+            onProductoClick = {},
+            onNuevoClick = {}
+        )
     }
 }

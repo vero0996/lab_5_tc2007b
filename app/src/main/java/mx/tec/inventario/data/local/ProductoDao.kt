@@ -24,6 +24,9 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE id = :id")
     fun observarPorId(id: Int): Flow<ProductoEntity?>
 
+    @Query("SELECT * FROM productos WHERE nombre LIKE :texto ORDER BY nombre COLLATE NOCASE ASC")
+    fun buscarPorNombre(texto: String): Flow<List<ProductoEntity>>
+
     @Insert
     suspend fun insertar(producto: ProductoEntity)
 
