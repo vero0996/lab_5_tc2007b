@@ -15,5 +15,7 @@ data class ProductoEntity(
     val id: Int = 0,
     val nombre: String,
     val precio: Double,
-    val cantidad: Int
+    val cantidad: Int,
+    val categoria: String = "General"
 )
+
