@@ -55,6 +55,12 @@ class DetalleViewModel(
         }
     }
 
+    fun reinsertar(producto: Producto){
+        viewModelScope.launch {
+            repository.agregar(producto)
+        }
+    }
+
     private companion object {
         const val ESPERA_MS = 5_000L
     }

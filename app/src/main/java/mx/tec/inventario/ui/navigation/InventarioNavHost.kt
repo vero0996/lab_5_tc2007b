@@ -1,26 +1,35 @@
 package mx.tec.inventario.ui.navigation
 
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
 import mx.tec.inventario.ui.components.CargandoView
 import mx.tec.inventario.ui.screens.DetalleScreen
 import mx.tec.inventario.ui.screens.FormularioScreen
 import mx.tec.inventario.ui.screens.ListaScreen
+import mx.tec.inventario.ui.state.AppViewModelProvider
 import mx.tec.inventario.ui.state.DetalleViewModel
 import mx.tec.inventario.ui.state.FormularioViewModel
 import mx.tec.inventario.ui.state.ListaViewModel
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import mx.tec.inventario.ui.state.AppViewModelProvider
 
 @Composable
 fun InventarioApp() {
     val nav = rememberNavController()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     NavHost(navController = nav, startDestination = Route.LISTA) {
 
@@ -33,7 +42,8 @@ fun InventarioApp() {
                 textoBusqueda = viewModel.textoBusqueda,
                 onTextoBusquedaChange = viewModel::onTextoBusquedaChange,
                 onProductoClick = { id -> nav.navigate(Route.detalle(id)) },
-                onNuevoClick = { nav.navigate(Route.NUEVO) }
+                onNuevoClick = { nav.navigate(Route.NUEVO) },
+                snackbarHostState = snackbarHostState
             )
         }
 
@@ -45,8 +55,6 @@ fun InventarioApp() {
             val viewModel: DetalleViewModel = viewModel(factory = AppViewModelProvider.Factory)
             val producto by viewModel.producto.collectAsStateWithLifecycle()
 
-// null mientras la consulta va en camino, y también el instante
-// posterior a borrar, cuando la fila ya no existe.
             val actual = producto
             if (actual == null) {
                 CargandoView()
@@ -55,7 +63,23 @@ fun InventarioApp() {
                     producto = actual,
                     onVenderUno = { viewModel.venderUno() },
                     onEditar = { nav.navigate(Route.editar(id)) },
-                    onBorrar = { viewModel.borrar { nav.popBackStack(Route.LISTA, false) } },
+                    onBorrar = {
+                        val eliminado = actual
+                        viewModel.borrar {
+                            nav.popBackStack(Route.LISTA, false)
+                            // 3. Muestra el Snackbar con la opción de Deshacer
+                            scope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "${eliminado.nombre} eliminado",
+                                    actionLabel = "Deshacer",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.reinsertar(eliminado)
+                                }
+                            }
+                        }
+                    },
                     onBack = { nav.popBackStack() }
                 )
             }

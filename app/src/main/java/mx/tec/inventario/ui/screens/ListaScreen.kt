@@ -13,6 +13,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import mx.tec.inventario.domain.Producto
 import mx.tec.inventario.ui.components.ProductoCard
 import mx.tec.inventario.ui.theme.InventarioTheme
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,9 +32,11 @@ fun ListaScreen(
     textoBusqueda: String,
     onTextoBusquedaChange: (String) -> Unit,
     onProductoClick: (Int) -> Unit,
-    onNuevoClick: () -> Unit
+    onNuevoClick: () -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState)},
         floatingActionButton = {
             FloatingActionButton(onClick = onNuevoClick) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar producto")
@@ -52,7 +57,6 @@ fun ListaScreen(
 
             LazyColumn {
                 items(productos) { producto ->
-                    // 👈 Se usa ProductoCard en lugar de ProductoItem
                     ProductoCard(
                         producto = producto,
                         onClick = { onProductoClick(producto.id) }
@@ -77,7 +81,8 @@ private fun ListaPreview() {
             textoBusqueda = "",
             onTextoBusquedaChange = {},
             onProductoClick = {},
-            onNuevoClick = {}
+            onNuevoClick = {},
+            snackbarHostState = remember { SnackbarHostState ()}
         )
     }
 }
@@ -91,7 +96,8 @@ private fun ListaVaciaPreview() {
             textoBusqueda = "",
             onTextoBusquedaChange = {},
             onProductoClick = {},
-            onNuevoClick = {}
+            onNuevoClick = {},
+            snackbarHostState = remember { SnackbarHostState ()}
         )
     }
 }
