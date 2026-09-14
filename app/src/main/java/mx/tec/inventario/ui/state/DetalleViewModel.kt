@@ -8,6 +8,13 @@ import androidx.lifecycle.ViewModel
 import mx.tec.inventario.data.ProductoRepository
 import mx.tec.inventario.domain.Producto
 import mx.tec.inventario.ui.navigation.Route
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Un producto y las dos acciones que se hacen sobre él.
@@ -15,30 +22,40 @@ import mx.tec.inventario.ui.navigation.Route
  * El id no se lo pasa nadie a mano: `SavedStateHandle` trae los argumentos de
  * navegación, y de paso sobrevive a que el sistema mate el proceso.
  */
-class DetalleViewModel(savedStateHandle: SavedStateHandle) : ViewModel() {
+class DetalleViewModel(
+    private val repository: ProductoRepository,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     private val productoId: Int =
         checkNotNull(savedStateHandle.get<Int>(Route.ARG_PRODUCTO_ID))
 
-    var producto by mutableStateOf<Producto?>(null)
-        private set
+    val producto: StateFlow<Producto?> =
+        repository.observarPorId(productoId).stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(ESPERA_MS),
+            initialValue = null
+        )
 
-    init { recargar() }
-
-    fun recargar() {
-        producto = ProductoRepository.obtenerPorId(productoId)
-    }
-
+    /** Vender es restar uno. La pantalla no vuelve a pedir nada: el Flow avisa. */
     fun venderUno() {
-        val actual = producto ?: return
+        val actual = producto.value ?: return
         if (actual.agotado) return
-        ProductoRepository.actualizar(actual.copy(cantidad = actual.cantidad - 1))
-        recargar()
+        viewModelScope.launch {
+            repository.actualizar(actual.copy(cantidad = actual.cantidad - 1))
+        }
     }
 
+    /** `alTerminar` se llama cuando la fila ya no está, no antes. */
     fun borrar(alTerminar: () -> Unit) {
-        val actual = producto ?: return
-        ProductoRepository.borrar(actual)
-        alTerminar()
+        val actual = producto.value ?: return
+        viewModelScope.launch {
+            repository.borrar(actual)
+            alTerminar()
+        }
+    }
+
+    private companion object {
+        const val ESPERA_MS = 5_000L
     }
 }
